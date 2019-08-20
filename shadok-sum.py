@@ -9,69 +9,89 @@ class Verb(Enum):
     def sum_inventory():
         return {
             'GA': {
-                  'GA' : {'val': Verb.GA,   'keepBU': False }
-                , 'BU' : {'val': Verb.BU,   'keepBU': False }
-                , 'ZO' : {'val': Verb.ZO,   'keepBU': False }
-                , 'MEU': {'val': Verb.MEU,  'keepBU': False }
+                  'GA' : {'val': Verb.GA,   'keep': False }
+                , 'BU' : {'val': Verb.BU,   'keep': False }
+                , 'ZO' : {'val': Verb.ZO,   'keep': False }
+                , 'MEU': {'val': Verb.MEU,  'keep': False }
             }
             , 'BU': {
-                  'GA' : {'val': Verb.BU,  'keepBU': False }
-                , 'BU' : {'val': Verb.ZO,  'keepBU': False }
-                , 'ZO' : {'val': Verb.MEU, 'keepBU': False }
-                , 'MEU': {'val': Verb.GA,  'keepBU': True  }
+                  'GA' : {'val': Verb.BU,  'keep': False }
+                , 'BU' : {'val': Verb.ZO,  'keep': False }
+                , 'ZO' : {'val': Verb.MEU, 'keep': False }
+                , 'MEU': {'val': Verb.GA,  'keep': True  }
             }
             , 'ZO': {
-                  'GA' : {'val': Verb.ZO,  'keepBU': False }
-                , 'BU' : {'val': Verb.MEU, 'keepBU': False }
-                , 'ZO' : {'val': Verb.GA,  'keepBU': True  }
-                , 'MEU': {'val': Verb.BU,  'keepBU': True  }
+                  'GA' : {'val': Verb.ZO,  'keep': False }
+                , 'BU' : {'val': Verb.MEU, 'keep': False }
+                , 'ZO' : {'val': Verb.GA,  'keep': True  }
+                , 'MEU': {'val': Verb.BU,  'keep': True  }
             }
             , 'MEU': {
-                  'GA' : {'val': Verb.MEU, 'keepBU': False }
-                , 'BU' : {'val': Verb.GA,  'keepBU': True }
-                , 'ZO' : {'val': Verb.BU,  'keepBU': True }
-                , 'MEU': {'val': Verb.ZO,  'keepBU': True }
+                  'GA' : {'val': Verb.MEU, 'keep': False }
+                , 'BU' : {'val': Verb.GA,  'keep': True }
+                , 'ZO' : {'val': Verb.BU,  'keep': True }
+                , 'MEU': {'val': Verb.ZO,  'keep': True }
             }
         }
+
 
 class ShadokNumber():
     def __init__(self, verbs):
         self.number = verbs
 
-    def sum(self, shadok):
-        left_reverse = self.number[::-1]
-        right_reverse = shadok.number[::-1]
+    def sum(self, target):
+        math_sum = MathematicSum(Verb.GA, Verb.BU, Verb.sum_inventory())
+        return ShadokNumber(math_sum.apply_on(self.number, target.number))
 
-        sum_terms = ShadokNumber.equalize_list_length(left_reverse,
-                                                      right_reverse)
+    def __add__(self, other):
+        return self.sum(other)
+
+class MathematicSum:
+    def __init__(self, neutral, unit, inventory):
+        self.unit = unit
+        self.neutral = neutral
+        self.inventory = inventory
+
+    def apply_on(self, left, right):
+        left_reverse  = left[::-1]
+        right_reverse = right[::-1]
+
+        sum_terms = self.equalize_list_length(left_reverse, right_reverse)
 
         final_number = []
-        keep_val = Verb.GA
+        keep = False
 
         for left, right in zip(sum_terms[0], sum_terms[1]):
-            sum_info = ShadokNumber.from_inventory(left, right)
-            next_val = ShadokNumber.from_inventory(sum_info['val'], keep_val)
+            sum_info = self.digit_sum_info(left, right)
+            temp_result = sum_info['val']
 
-            keep_val = Verb.BU if sum_info['keepBU'] else Verb.GA
+            keep_val = self.unit if keep else self.neutral
+            next_val_info = self.digit_sum_info(temp_result, keep_val)
 
-            final_number += [next_val['val']]
+            next_val = next_val_info['val']
+            keep     = sum_info['keep']
 
-        if keep_val != Verb.GA:
-            final_number += [keep_val]
+            final_number += [next_val]
 
-        return ShadokNumber(final_number[::-1])
+        if keep:
+            final_number += [self.unit]
 
-    def equalize_list_length(list1, list2):
+        return final_number[::-1]
+
+    def equalize_list_length(self, list1, list2):
         length_diff = abs(len(list1) - len(list2))
 
-        list1_equalized = list1 + [Verb.GA] * length_diff
-        list2_equalized = list2 + [Verb.GA] * length_diff
+        list1_equalized = list1 + [self.neutral] * length_diff
+        list2_equalized = list2 + [self.neutral] * length_diff
 
         return [list1_equalized, list2_equalized]
 
-    def from_inventory(verb1, verb2):
-        sum_inventory = Verb.sum_inventory()
-        return sum_inventory[verb1.name][verb2.name]
+    def digit_sum_info(self, left, right):
+        return self.from_inventory(left, right)
+
+
+    def from_inventory(self, verb1, verb2):
+        return self.inventory[verb1.name][verb2.name]
 
 ### Unit Test ###
 
